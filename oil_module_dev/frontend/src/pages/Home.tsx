@@ -1,12 +1,11 @@
-import React from 'react'
 import '../App.css'
 
 async function ping(n: number) {
 	let response: any
 	if (n) {
-		response = await fetch('http://localhost:8000/todo')
+		response = await fetch('http://localhost:8080/todo')
 	} else {
-		response = await fetch('http://localhost:8000')
+		response = await fetch('http://localhost:8080')
 	}
 
 	console.log(await response.json())
