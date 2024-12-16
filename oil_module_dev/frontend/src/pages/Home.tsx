@@ -1,3 +1,4 @@
+import axios from 'axios'
 import React, { useState } from 'react'
 import '../App.css'
 
@@ -90,6 +91,7 @@ const ControlBar: React.FC<{}> = () => {
 				<UploadFile />
 			</div>
 			<SettingsBox quantity={quantity} />
+			<Req />
 		</>
 	)
 }
@@ -149,6 +151,82 @@ function SettingsBox(props: any) {
 	)
 }
 
+function Req() {
+	const [item, setItem] = useState({
+		name: '',
+		description: '',
+		price: 0,
+		tax: 0,
+	})
+
+	const handleChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'] =
+		e => {
+			const { name, value } = e.target
+
+			setItem(prevItem => ({
+				...prevItem,
+				[name]: value,
+			}))
+		}
+
+	const handleSubmit: React.InputHTMLAttributes<HTMLFormElement>['onSubmit'] =
+		async e => {
+			e.preventDefault()
+
+			try {
+				const response = await axios.post('http://0.0.0.0:8080/q/', item)
+
+				console.log('Success:', response.data)
+			} catch (error) {
+				console.error('Error:', error)
+			}
+		}
+
+	return (
+		<div>
+			<h1>Create Item</h1>
+
+			<form onSubmit={handleSubmit}>
+				<input
+					type='text'
+					name='name'
+					placeholder='Item Name'
+					value={item.name}
+					onChange={handleChange}
+					required
+				/>
+
+				<input
+					type='text'
+					name='description'
+					placeholder='Description'
+					value={item.description}
+					onChange={handleChange}
+				/>
+
+				<input
+					type='number'
+					name='price'
+					placeholder='Price'
+					value={item.price}
+					onChange={handleChange}
+					required
+				/>
+
+				<input
+					type='number'
+					name='tax'
+					placeholder='Tax'
+					value={item.tax}
+					onChange={handleChange}
+				/>
+
+				<button type='submit'>Submit</button>
+			</form>
+		</div>
+	)
+}
+
 const boxStyle: React.CSSProperties = {
 	width: '200px',
 	height: '90px',
@@ -193,25 +271,38 @@ function UploadFile(props: any) {
 			setFile(e.target.files[0])
 		}
 	}
-	const handleUpload = async () => {
-		if (file) {
-			console.log('Uploading file...')
+	// const handleSubmit: React.InputHTMLAttributes<HTMLFormElement>['onSubmit'] =
+	// 	async e => {
+	// 		e.preventDefault()
 
-			const formData = new FormData()
-			formData.append('file', file)
+	// 		try {
+	// 			const response = await axios.post('http://0.0.0.0:8080/q/', item)
 
-			try {
-				const result = await fetch('', {
-					method: 'POST',
-					body: formData,
-				})
-				const data = await result.json()
-				console.log(data)
-			} catch (error) {
-				console.error(error)
+	// 			console.log('Success:', response.data)
+	// 		} catch (error) {
+	// 			console.error('Error:', error)
+	// 		}
+	// 	}
+	const handleUpload: React.InputHTMLAttributes<HTMLButtonElement>['onClick'] =
+		async () => {
+			if (file) {
+				console.log('Uploading file...')
+
+				const formData = new FormData()
+				formData.append('file', file)
+
+				try {
+					const result = await fetch('http://0.0.0.0:8080/uploadfile/', {
+						method: 'POST',
+						body: formData,
+					})
+					const data = await result.json()
+					console.log(data)
+				} catch (error) {
+					console.error(error)
+				}
 			}
 		}
-	}
 	return (
 		<>
 			<div className='input-group'>
