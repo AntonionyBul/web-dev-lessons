@@ -1,8 +1,10 @@
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Annotated
-
+import os
+from app.parser_setter import adjust
 app = FastAPI()
+
+
 
 origins = [
     "http://localhost:8080",
@@ -19,26 +21,11 @@ app.add_middleware(
     allow_headers=["*"], 
 )
 
-@app.get("/todo", tags=["todos"])
-async def get_todos() -> dict:
-    return { "get log": "123" }
-
-
 @app.get("/", tags=["root"])
 async def read_root() -> dict:
-    return {"message": "Welcome to your todo list."}
+    return {"message": "Welcome"}
 
-@app.post("/files/")
-async def create_file(file: Annotated[bytes, File()]):
-    return {"file_size": len(file)}
-
-
-@app.post("/uploadfile/")
-async def create_upload_file(file: UploadFile):
-
-    return {"filename": file.filename}
-
-@app.post("/q")
+@app.post("/uploadlimits")
 async def root(data: Request):
     try:
         res = await data.json()
@@ -46,3 +33,31 @@ async def root(data: Request):
         res = str(ex)
     print(res)
     return res
+
+
+@app.post("/uploadfiles")
+
+async def upload_file(file: UploadFile = File(...)):
+
+    file_location = os.path.join('./', file.filename)
+
+
+    # Save the uploaded file to the specified location
+
+    with open(file_location, "wb") as file_object:
+
+        file_object.write(await file.read())
+
+    
+    # adjust(wells, dates, limits)    
+
+    return {
+
+        "filename": file.filename,
+
+        "content_type": file.content_type,
+
+        "size": os.path.getsize(file_location)
+
+    }
+

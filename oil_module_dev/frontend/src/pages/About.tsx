@@ -1,11 +1,41 @@
 import React from 'react'
 import '../App.css'
 
-export default function Deck() {
+export default function About() {
 	return (
 		<>
 			<Introduction />
 			<ScrollWithCandle />
+		</>
+	)
+}
+
+const Introduction: React.FC<{}> = () => {
+	return (
+		<div style={introBoxStyle}>
+			<div style={introTextBoxStyle}>
+				Команда занимающаяся созданием модуля подгонки под уровни добычи нефти
+			</div>
+		</div>
+	)
+}
+
+const ScrollWithCandle: React.FC<{}> = () => {
+	return (
+		<>
+			<div style={boxStyle}>
+				<div style={textBoxStyle}>
+					<div className='firstPar' style={firstParagraphs}>
+						<p style={aboutAuthors}>Булах Антон</p>
+					</div>
+					<div className='firstPar' style={firstParagraphs}>
+						<p style={aboutAuthors}>Куценко Лев</p>
+					</div>
+					<div className='firstPar' style={firstParagraphs}>
+						<p style={aboutAuthors}>Радомская Алина</p>
+					</div>
+				</div>
+			</div>
 		</>
 	)
 }
@@ -26,18 +56,6 @@ const introTextBoxStyle: React.CSSProperties = {
 	color: 'white',
 	fontFamily: 'cursive',
 	textAlign: 'center',
-}
-
-const Introduction: React.FC<{}> = () => {
-	return (
-		<>
-			<div style={introBoxStyle}>
-				<div style={introTextBoxStyle}>
-					Команда занимающаяся созданием модуля подгонки под уровни добычи нефти
-				</div>
-			</div>
-		</>
-	)
 }
 
 const boxStyle: React.CSSProperties = {
@@ -66,24 +84,4 @@ const firstParagraphs: React.CSSProperties = {
 const aboutAuthors: React.CSSProperties = {
 	padding: '35px',
 	textAlign: 'center',
-}
-
-const ScrollWithCandle: React.FC<{}> = () => {
-	return (
-		<>
-			<div style={boxStyle}>
-				<div style={textBoxStyle}>
-					<div className='firstPar' style={firstParagraphs}>
-						<p style={aboutAuthors}>Булах Антон</p>
-					</div>
-					<div className='firstPar' style={firstParagraphs}>
-						<p style={aboutAuthors}>Куценко Лев</p>
-					</div>
-					<div className='firstPar' style={firstParagraphs}>
-						<p style={aboutAuthors}>Радомская Алина</p>
-					</div>
-				</div>
-			</div>
-		</>
-	)
 }

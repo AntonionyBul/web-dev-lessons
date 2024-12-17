@@ -1,32 +1,16 @@
 import pandas as pd
-import time, os
+import time, os, sys
 
-start = time.time()
+# start = time.time()
 
 
-def csv_from_excel(file, sheet):
-    data_xls = pd.read_excel(file, sheet, index_col=None)
-    data_xls.to_csv('formater_file.csv', encoding='utf-8', index=False)
-
-def makeDataFrame(file, sheet):
-    csv_from_excel(file, sheet)
-    df = pd.read_csv(
-    'formater_file.csv',
-    engine="python",
-    )
-    os.remove('formater_file.csv')
-    return df
 
 def adjust_production(data_df:pd.DataFrame, coeff_df:pd.DataFrame, well_for_changes, date_str, production_limit):
 
     # Фильтруем данные по выбранным скважинам
     data_df_wells = data_df[data_df['Unnamed: 0'].isin(well_for_changes)]
     coeff_df_wells = coeff_df[coeff_df['Unnamed: 0'].isin(well_for_changes)]
-       
-    # print(data_df)
-    # print(data_df_wells)
-    # print(coeff_df_wells)
-  
+    
     if data_df[date_str].sum() < production_limit:
         
         # Находим на сколько можем увеличить добычу
@@ -73,33 +57,33 @@ def adjust_production(data_df:pd.DataFrame, coeff_df:pd.DataFrame, well_for_chan
     return data_df, coeff_df
 
 
-# Выполняем подгонку увеличения
-# adjusted_production = adjust_production(data_df, coeff_df, well_for_changes, date_str, production_limit)
-# Выводим результат
-# print(adjusted_production)
-
-# Использование с массивом данных
 def array_adjust(data_df:pd.DataFrame, coeff_df:pd.DataFrame, well_for_changes, dates_str, production_limits):
     for date, limit in zip(dates_str, production_limits):
      
         adjusted_production = adjust_production(data_df, coeff_df, well_for_changes, date, limit)
 
         data_df[date] = adjusted_production[0][date]
-
         coeff_df[date] = adjusted_production[1][date]
 
     return data_df, coeff_df
 
-def csv_to_xlsx(filename, ready_df):
-    ready_df[0].to_csv("output.csv", sep=' ', encoding='utf-8', index=False, header=True)
 
-    pd.read_csv(filename + '.csv', sep=" ", encoding="cp1251").to_excel(filename + '.xlsx', index=None, sheet_name="Данные по добыче")
-    os.remove(filename + '.csv')
+    
+def makeDataFrame(file, sheet):
+    data_xls = pd.read_excel(file, sheet, index_col=None)
+    data_xls.to_csv('formater_file.csv', encoding='utf-8', index=False)
 
-    ready_df[1].to_csv("output.csv", sep=' ', encoding='utf-8', index=False, header=True)
+    df = pd.read_csv('formater_file.csv', engine="python")
+    os.remove('formater_file.csv')
+    return df
 
-    pd.read_csv(filename + '.csv', sep=" ", encoding="cp1251").to_excel(filename + '.xlsx', index=None, sheet_name="Коэффициенты по эксплуатации")
-    os.remove(filename + '.csv')
+def dataframe_to_xlsx(ready_df):
+    writer = pd.ExcelWriter('app/output.xlsx', engine='xlsxwriter')
+
+    ready_df[0].to_excel(writer, index=None, sheet_name="Данные по добыче")
+    ready_df[1].to_excel(writer, index=None, sheet_name="Коэффициенты по эксплуатации")
+    writer._save()
+   
 
 
 # Задаем параметры
@@ -109,18 +93,16 @@ production_limits = [1000, 1200, 2000, 4000, 1000]
 
 def adjust(well_for_changes, dates_str, production_limits):
     # Загрузка данных
-    data_df = makeDataFrame('input.xlsx', 'Данные по добыче')  # Датасет с добычей
-    coeff_df = makeDataFrame('input.xlsx', 'Коэффициенты эксплуатации')  # Датасет с коэффициентами
+    data_df = makeDataFrame('app/input.xlsx', 'Данные по добыче')  # Датасет с добычей
+    coeff_df = makeDataFrame('app/input.xlsx', 'Коэффициенты эксплуатации')  # Датасет с коэффициентами
 
     ready_df = array_adjust(data_df, coeff_df, well_for_changes, dates_str, production_limits)
 
-    csv_to_xlsx("output", ready_df)
+    dataframe_to_xlsx(ready_df)
 
 adjust(well_for_changes, dates_str, production_limits)
 
-# Calculate the end time and time taken
-end = time.time()
-length = end - start
-
-# Show the results : this can be altered however you like
-print("It took", length, "seconds")
+# # Calculate the end time and time taken
+# end = time.time()
+# length = end - start
+# print("It took", length, "seconds")

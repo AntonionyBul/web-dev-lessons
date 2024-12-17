@@ -2,16 +2,16 @@ import axios from 'axios'
 import React, { useState } from 'react'
 import '../App.css'
 
-async function ping(n: number) {
-	let response: any
-	if (n) {
-		response = await fetch('http://localhost:8080/todo')
-	} else {
-		response = await fetch('http://localhost:8080')
-	}
+// async function ping(n: number) {
+// 	let response: any
+// 	if (n) {
+// 		response = await fetch('http://localhost:8080/todo')
+// 	} else {
+// 		response = await fetch('http://localhost:8080')
+// 	}
 
-	console.log(await response.json())
-}
+// 	console.log(await response.json())
+// }
 
 export default function Home() {
 	return (
@@ -41,33 +41,19 @@ const controlBar: React.CSSProperties = {
 }
 
 const ControlBar: React.FC<{}> = () => {
-	const [quantity, setQuantity] = useState([0, 0])
+	const [quantity, setQuantity] = useState(0)
 	const handleBoreQuantityChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'] =
 		event => {
 			if (Number(event.target.value) >= 0) {
-				setQuantity((prevQuantity: any[]) => [
-					Number(event.target.value),
-					prevQuantity[1],
-				])
-				// boreQuantity = [...Array(Number(quantity)).keys()]
-				// console.log(boreQuantity)
-			}
-		}
-	const handleTimeQuantityChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'] =
-		event => {
-			if (Number(event.target.value) >= 0) {
-				setQuantity((prevQuantity: any[]) => [
-					prevQuantity[0],
-					Number(event.target.value),
-				])
-				// boreQuantity = [...Array(Number(quantity)).keys()]
-				// console.log(boreQuantity)
+				setQuantity(Number(event.target.value))
 			}
 		}
 
 	return (
 		<>
 			<div style={controlBar}>
+				<UploadFile />
+
 				<div>
 					Введите количество скважин
 					<input
@@ -78,30 +64,182 @@ const ControlBar: React.FC<{}> = () => {
 						onChange={handleBoreQuantityChange}
 					/>
 				</div>
-				<div>
-					Введите количество временных промежутков
-					<input
-						min={0}
-						max={50}
-						defaultValue={0}
-						type='number'
-						onChange={handleTimeQuantityChange}
-					/>
-				</div>
-				<UploadFile />
 			</div>
 			<SettingsBox quantity={quantity} />
-			<Req />
+			{/* <Req /> */}
+			<MyForms />
 		</>
 	)
 }
 
-// let options = []
+function UploadFile() {
+	const [file, setFile] = useState<File | null>(null)
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files) {
+			setFile(e.target.files[0])
+		}
+	}
+	const handleUpload: React.InputHTMLAttributes<HTMLButtonElement>['onClick'] =
+		async () => {
+			if (file) {
+				console.log('Uploading file...')
+				const formData = new FormData()
+				formData.append('file', file)
+
+				try {
+					const result = await fetch('http://0.0.0.0:8080/uploadfiles/', {
+						method: 'POST',
+						body: formData,
+					})
+					const data = await result.json()
+					console.log(data)
+				} catch (error) {
+					console.error(error)
+				}
+			}
+		}
+	return (
+		<>
+			<div className='input-group'>
+				<input
+					id='file'
+					accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					type='file'
+					onChange={handleFileChange}
+				/>
+			</div>
+
+			{file && (
+				<button onClick={handleUpload} className='submit'>
+					Запуск модуля подгонки
+				</button>
+			)}
+		</>
+	)
+}
+
+const MyForms = () => {
+	const [formsData, setFormsData] = useState([
+		{
+			date1: '',
+			date2: '',
+			number: 0,
+		},
+	])
+
+	const handleChange = (
+		index: number,
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		const { name, value } = e.target
+
+		const updatedForms = formsData.map((form, i) =>
+			i === index ? { ...form, [name]: value } : form
+		)
+
+		setFormsData(updatedForms)
+	}
+
+	const addForm = () => {
+		setFormsData([
+			...formsData,
+			{
+				date1: '',
+				date2: '',
+				number: 0,
+			},
+		])
+		console.log(formsData)
+	}
+
+	const removeForm = (index: number) => {
+		const updatedForms = formsData.filter((_, i) => i !== index)
+
+		setFormsData(updatedForms)
+	}
+
+	const handleSubmit = async (e: { preventDefault: () => void }) => {
+		e.preventDefault()
+
+		let data = JSON.stringify(formsData)
+
+		try {
+			const response = await axios.post(
+				'http://0.0.0.0:8080/uploadlimits',
+				data
+			)
+
+			console.log('Success:', response.data)
+		} catch (error) {
+			console.error('Error:', error)
+		}
+	}
+
+	return (
+		<form onSubmit={handleSubmit}>
+			{formsData.map((form, index) => (
+				<div
+					key={index}
+					style={{
+						marginBottom: '20px',
+						border: '1px solid #ccc',
+						padding: '10px',
+					}}
+				>
+					<h3>Промежуток {index + 1}</h3>
+					<div>
+						<label>
+							Начало:
+							<input
+								type='date'
+								name='date1'
+								value={form.date1}
+								onChange={e => handleChange(index, e)}
+							/>
+						</label>
+					</div>
+					<div>
+						<label>
+							Конец:
+							<input
+								type='date'
+								name='date2'
+								value={form.date2}
+								onChange={e => handleChange(index, e)}
+							/>
+						</label>
+					</div>
+
+					<div>
+						<label>
+							Ограничение:
+							<input
+								type='number'
+								name='number1'
+								value={form.number}
+								onChange={e => handleChange(index, e)}
+							/>
+						</label>
+					</div>
+
+					<button type='button' onClick={() => removeForm(index)}>
+						Удалить форму
+					</button>
+				</div>
+			))}
+
+			<button type='button' onClick={addForm}>
+				Добавить форму
+			</button>
+
+			<button type='submit'>Отправить</button>
+		</form>
+	)
+}
+
 function SettingsBox(props: any) {
-	let boreQuantity = [
-		[...Array(props.quantity[0]).keys()],
-		[...Array(props.quantity[1]).keys()],
-	]
+	let boreQuantity = [...Array(props.quantity).keys()]
 	const [boreLimits, addBoreLimit] = useState(Object)
 	const addLimit = (boreNumber: number) => {
 		addBoreLimit((prevLimits: any[]) => ({
@@ -109,45 +247,30 @@ function SettingsBox(props: any) {
 			[boreNumber]: ((prevLimits[boreNumber] || 0) + 1) % 2,
 		}))
 		console.log(boreLimits)
-		// addBoreLimit()
-		// boreQuantity = [...Array(Number(quantity)).keys()]
-		// console.log(boreQuantity)
 	}
 
 	return (
-		<div style={settingsBoxes}>
-			{boreQuantity[0].map(bore => {
-				return (
-					<div style={boxStyle}>
-						Скважина {bore + 1}
-						<label className='switch'>
-							<input type='checkbox'></input>
-							<span
-								className='slider round'
-								onClick={() => addLimit(bore)}
-							></span>
-						</label>
-					</div>
-				)
-			})}
-			{boreQuantity[1].map(bore => {
-				return (
-					<div style={boxDateStyle}>
-						Промежуток {bore + 1}
-						<input type='date'></input>
-						<input type='date'></input>
-						Ограничение
-						<input
-							min={0}
-							max={100}
-							defaultValue={0}
-							type='number'
-							// onChange={''}
-						/>
-					</div>
-				)
-			})}
-		</div>
+		<>
+			<form>
+				<div style={settingsBoxes}>
+					{boreQuantity.map(bore => {
+						return (
+							<div style={boxStyle}>
+								Скважина {bore + 1}
+								<label className='switch'>
+									<input type='checkbox'></input>
+									<span
+										className='slider round'
+										onClick={() => addLimit(bore)}
+									></span>
+								</label>
+							</div>
+						)
+					})}
+				</div>
+				<button type='submit'>Submit</button>
+			</form>
+		</>
 	)
 }
 
@@ -172,9 +295,16 @@ function Req() {
 	const handleSubmit: React.InputHTMLAttributes<HTMLFormElement>['onSubmit'] =
 		async e => {
 			e.preventDefault()
-
+			let g = JSON.stringify([
+				{
+					date1: '2024-12-18',
+					date2: '2024-12-20',
+					number1: '1111',
+					number2: '2222',
+				},
+			])
 			try {
-				const response = await axios.post('http://0.0.0.0:8080/q/', item)
+				const response = await axios.post('http://0.0.0.0:8080/q/', g)
 
 				console.log('Success:', response.data)
 			} catch (error) {
@@ -262,81 +392,3 @@ const settingsBoxes: React.CSSProperties = {
 const windowStyle: React.CSSProperties = {
 	margin: '0% 3%',
 }
-
-function UploadFile(props: any) {
-	const [file, setFile] = useState<File | null>(null)
-
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files) {
-			setFile(e.target.files[0])
-		}
-	}
-	// const handleSubmit: React.InputHTMLAttributes<HTMLFormElement>['onSubmit'] =
-	// 	async e => {
-	// 		e.preventDefault()
-
-	// 		try {
-	// 			const response = await axios.post('http://0.0.0.0:8080/q/', item)
-
-	// 			console.log('Success:', response.data)
-	// 		} catch (error) {
-	// 			console.error('Error:', error)
-	// 		}
-	// 	}
-	const handleUpload: React.InputHTMLAttributes<HTMLButtonElement>['onClick'] =
-		async () => {
-			if (file) {
-				console.log('Uploading file...')
-
-				const formData = new FormData()
-				formData.append('file', file)
-
-				try {
-					const result = await fetch('http://0.0.0.0:8080/uploadfile/', {
-						method: 'POST',
-						body: formData,
-					})
-					const data = await result.json()
-					console.log(data)
-				} catch (error) {
-					console.error(error)
-				}
-			}
-		}
-	return (
-		<>
-			<div className='input-group'>
-				<input
-					id='file'
-					accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					type='file'
-					onChange={handleFileChange}
-				/>
-			</div>
-			{file && (
-				<section>
-					File details:
-					<ul>
-						<li>Name: {file.name}</li>
-						<li>Type: {file.type}</li>
-						<li>Size: {file.size} bytes</li>
-					</ul>
-				</section>
-			)}
-			{file && (
-				<button onClick={handleUpload} className='submit'>
-					Запуск модуля подгонки
-				</button>
-			)}
-		</>
-	)
-}
-
-// const Upload: React.FC<{}> = ({ onUpload }) => {
-// 	const id = useId()
-// 	return (
-// 		<label htmlFor='id'>
-// 			<input type='file' id={id} />
-// 		</label>
-// 	)
-// }
