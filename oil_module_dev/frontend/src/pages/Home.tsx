@@ -15,7 +15,7 @@ import '../App.css'
 
 export default function Home() {
 	return (
-		<div style={windowStyle}>
+		<div style={{ margin: '0% 3%' }}>
 			<div>
 				<ControlBar />
 				{/* <div className='pingButton' onClick={() => ping(0)}>
@@ -30,16 +30,6 @@ export default function Home() {
 	)
 }
 
-const controlBar: React.CSSProperties = {
-	width: '100%',
-	height: '90px',
-	backgroundColor: 'lightblue',
-	display: 'flex',
-	justifyContent: 'space-between',
-	alignItems: 'center',
-	padding: '0 20px',
-}
-
 const ControlBar: React.FC<{}> = () => {
 	const [quantity, setQuantity] = useState(0)
 	const handleBoreQuantityChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'] =
@@ -49,30 +39,6 @@ const ControlBar: React.FC<{}> = () => {
 			}
 		}
 
-	return (
-		<>
-			<div style={controlBar}>
-				<UploadFile />
-
-				<div>
-					Введите количество скважин
-					<input
-						min={0}
-						max={100}
-						defaultValue={0}
-						type='number'
-						onChange={handleBoreQuantityChange}
-					/>
-				</div>
-			</div>
-			<SettingsBox quantity={quantity} />
-			{/* <Req /> */}
-			<MyForms />
-		</>
-	)
-}
-
-function UploadFile() {
 	const [file, setFile] = useState<File | null>(null)
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,27 +65,70 @@ function UploadFile() {
 				}
 			}
 		}
+
+	let boreQuantity = [...Array(quantity).keys()]
+	const [boreLimits, addBoreLimit] = useState(Object)
+	const addLimit = (boreNumber: number) => {
+		addBoreLimit((prevLimits: any[]) => ({
+			...prevLimits,
+			[boreNumber]: ((prevLimits[boreNumber] || 0) + 1) % 2,
+		}))
+	}
+
 	return (
 		<>
-			<div className='input-group'>
-				<input
-					id='file'
-					accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					type='file'
-					onChange={handleFileChange}
-				/>
+			<div style={controlBar}>
+				1. Выберите файл
+				<div style={{ marginLeft: '20px' }}>
+					<input
+						id='file'
+						accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						type='file'
+						onChange={handleFileChange}
+					/>
+				</div>
+				{file && (
+					<div style={{ marginLeft: '30%' }}>
+						2. Введите количество скважин
+						<input
+							style={{ marginLeft: '20px' }}
+							min={0}
+							max={100}
+							defaultValue={0}
+							type='number'
+							onChange={handleBoreQuantityChange}
+						/>
+					</div>
+				)}
 			</div>
-
 			{file && (
-				<button onClick={handleUpload} className='submit'>
-					Запуск модуля подгонки
-				</button>
+				<form>
+					<div style={settingsBoxes}>
+						{boreQuantity.map(bore => {
+							return (
+								<div style={boxStyle}>
+									Скважина {bore + 1}
+									<label className='switch'>
+										<input type='checkbox'></input>
+										<span
+											className='slider round'
+											onClick={() => addLimit(bore)}
+										></span>
+									</label>
+								</div>
+							)
+						})}
+					</div>
+				</form>
 			)}
+			{/* <Req /> */}
+			{file && <>3. Выберите даты и ограничения</>}
+			{file ? <MyForms file={file} boreLimits={boreLimits} /> : null}
 		</>
 	)
 }
 
-const MyForms = () => {
+const MyForms = (props: any) => {
 	const [formsData, setFormsData] = useState([
 		{
 			date1: '',
@@ -160,8 +169,12 @@ const MyForms = () => {
 	}
 
 	const handleSubmit = async (e: { preventDefault: () => void }) => {
+		sendlimit()
+		sendwells()
 		e.preventDefault()
-
+		sendfile()
+	}
+	let sendlimit = async () => {
 		let data = JSON.stringify(formsData)
 
 		try {
@@ -176,6 +189,63 @@ const MyForms = () => {
 		}
 	}
 
+	let sendwells = async () => {
+		let data = JSON.stringify(props.boreLimits)
+
+		try {
+			const response = await axios.post('http://0.0.0.0:8080/uploadwells', data)
+
+			console.log('Success:', response.data)
+		} catch (error) {
+			console.error('Error:', error)
+		}
+	}
+
+	let sendfile = async () => {
+		if (props.file) {
+			console.log('Uploading file...')
+			const formData = new FormData()
+			formData.append('file', props.file)
+
+			try {
+				const result = await fetch('http://0.0.0.0:8080/uploadfiles/', {
+					method: 'POST',
+					body: formData,
+				})
+				const data = await result.json()
+				console.log(data)
+				get_file()
+			} catch (error) {
+				console.error(error)
+			}
+		}
+	}
+	let get_file = async () => {
+		fetch('http://0.0.0.0:8080/file/download', {
+			method: 'GET',
+			headers: {
+				'Content-Type':
+					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			},
+		})
+			.then(response => response.blob())
+			.then(blob => {
+				// Create blob link to download
+				const url = window.URL.createObjectURL(new Blob([blob]))
+				const link = document.createElement('a')
+				link.href = url
+				link.setAttribute('download', `output.xlsx`)
+
+				// Append to html link element page
+				document.body.appendChild(link)
+
+				// Start download
+				link.click()
+
+				// Clean up and remove the link
+				// link.parentNode.removeChild(link)
+			})
+	}
 	return (
 		<form onSubmit={handleSubmit}>
 			{formsData.map((form, index) => (
@@ -216,7 +286,7 @@ const MyForms = () => {
 							Ограничение:
 							<input
 								type='number'
-								name='number1'
+								name='number'
 								value={form.number}
 								onChange={e => handleChange(index, e)}
 							/>
@@ -238,123 +308,13 @@ const MyForms = () => {
 	)
 }
 
-function SettingsBox(props: any) {
-	let boreQuantity = [...Array(props.quantity).keys()]
-	const [boreLimits, addBoreLimit] = useState(Object)
-	const addLimit = (boreNumber: number) => {
-		addBoreLimit((prevLimits: any[]) => ({
-			...prevLimits,
-			[boreNumber]: ((prevLimits[boreNumber] || 0) + 1) % 2,
-		}))
-		console.log(boreLimits)
-	}
-
-	return (
-		<>
-			<form>
-				<div style={settingsBoxes}>
-					{boreQuantity.map(bore => {
-						return (
-							<div style={boxStyle}>
-								Скважина {bore + 1}
-								<label className='switch'>
-									<input type='checkbox'></input>
-									<span
-										className='slider round'
-										onClick={() => addLimit(bore)}
-									></span>
-								</label>
-							</div>
-						)
-					})}
-				</div>
-				<button type='submit'>Submit</button>
-			</form>
-		</>
-	)
-}
-
-function Req() {
-	const [item, setItem] = useState({
-		name: '',
-		description: '',
-		price: 0,
-		tax: 0,
-	})
-
-	const handleChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'] =
-		e => {
-			const { name, value } = e.target
-
-			setItem(prevItem => ({
-				...prevItem,
-				[name]: value,
-			}))
-		}
-
-	const handleSubmit: React.InputHTMLAttributes<HTMLFormElement>['onSubmit'] =
-		async e => {
-			e.preventDefault()
-			let g = JSON.stringify([
-				{
-					date1: '2024-12-18',
-					date2: '2024-12-20',
-					number1: '1111',
-					number2: '2222',
-				},
-			])
-			try {
-				const response = await axios.post('http://0.0.0.0:8080/q/', g)
-
-				console.log('Success:', response.data)
-			} catch (error) {
-				console.error('Error:', error)
-			}
-		}
-
-	return (
-		<div>
-			<h1>Create Item</h1>
-
-			<form onSubmit={handleSubmit}>
-				<input
-					type='text'
-					name='name'
-					placeholder='Item Name'
-					value={item.name}
-					onChange={handleChange}
-					required
-				/>
-
-				<input
-					type='text'
-					name='description'
-					placeholder='Description'
-					value={item.description}
-					onChange={handleChange}
-				/>
-
-				<input
-					type='number'
-					name='price'
-					placeholder='Price'
-					value={item.price}
-					onChange={handleChange}
-					required
-				/>
-
-				<input
-					type='number'
-					name='tax'
-					placeholder='Tax'
-					value={item.tax}
-					onChange={handleChange}
-				/>
-
-				<button type='submit'>Submit</button>
-			</form>
-		</div>
-	)
+const controlBar: React.CSSProperties = {
+	width: '100%',
+	height: '90px',
+	backgroundColor: 'lightblue',
+	display: 'flex',
+	alignItems: 'center',
+	padding: '0 20px',
 }
 
 const boxStyle: React.CSSProperties = {
@@ -369,17 +329,6 @@ const boxStyle: React.CSSProperties = {
 	position: 'inherit',
 }
 
-const boxDateStyle: React.CSSProperties = {
-	width: '200px',
-	height: '160px',
-	backgroundColor: 'lightblue',
-	borderRadius: '10px',
-	border: '1px solid grey',
-	borderColor: 'grey',
-	padding: '10px',
-	margin: '10px',
-}
-
 const settingsBoxes: React.CSSProperties = {
 	borderRadius: '10px',
 
@@ -387,8 +336,4 @@ const settingsBoxes: React.CSSProperties = {
 	margin: '10px',
 	display: 'grid',
 	gridTemplateColumns: 'repeat(6, 1fr)',
-}
-
-const windowStyle: React.CSSProperties = {
-	margin: '0% 3%',
 }
